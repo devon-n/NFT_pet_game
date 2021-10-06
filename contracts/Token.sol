@@ -8,7 +8,7 @@ contract Token is ERC721, Ownable {
 
     constructor (string memory _name, string memory _symbol) ERC721(_name, _symbol) {}
 
-    struct Pet {
+    struct Pet { // Pet attributes
         string name;
         uint256 level;
         uint256 health;
@@ -25,7 +25,7 @@ contract Token is ERC721, Ownable {
     uint256 creationFee = 0.0001 ether;
     uint256 petIdCounter;
 
-
+    // Mappings to keep track of owners
     mapping (address => uint256) public OwnerToPetId;
     mapping (address => Pet[]) public OwnerToAllPets;
     mapping (uint256 => Pet) public PetIdToPetDetails;
@@ -33,45 +33,28 @@ contract Token is ERC721, Ownable {
 
 
     function mint(string memory _name) public payable onlyOwner {
-        // require(msg.value >= creationFee, "Insufficient funds to create pet");
-        Pet memory newPet = Pet(_name, startingLevel, startingHealth, block.timestamp, startingDamage, petIdCounter);
-        _safeMint(msg.sender, petIdCounter, "");
-        PetIdToPetDetails[petIdCounter] = newPet;
-        OwnerToAllPets[msg.sender].push(newPet);
-        OwnerToPetId[msg.sender] = petIdCounter;
-        petIdCounter++;
+        require(msg.value >= creationFee, "Insufficient funds to create pet");
+        Pet memory newPet = Pet(_name, startingLevel, startingHealth, block.timestamp, startingDamage, petIdCounter); // Create a pet details
+        _safeMint(msg.sender, petIdCounter, ""); // Mint the pet
+        PetIdToPetDetails[petIdCounter] = newPet; // Pet Id to pet details
+        OwnerToAllPets[msg.sender].push(newPet); // Add pet to all owners pets array
+        OwnerToPetId[msg.sender] = petIdCounter; // Add pet id to owner mapping
+        petIdCounter++; // increment pet id
     }
 
-    function feed (uint256 _petId) public {
-        require(OwnerToPetId[msg.sender] == _petId, "You are not the owner of this pet.");
-        require((PetIdToPetDetails[_petId].lastMeal + PetIdToPetDetails[_petId].health) > block.timestamp); // Check if the pet has not feed in too long
-        Pet storage pet = PetIdToPetDetails[_petId];
-        pet.lastMeal = block.timestamp;
+    function feed (uint256 _petId) public { // Feed function
+        require(OwnerToPetId[msg.sender] == _petId, "You are not the owner of this pet."); // Only the owner of a pet can feed it
+        require((PetIdToPetDetails[_petId].lastMeal + PetIdToPetDetails[_petId].health) > block.timestamp); // Check if the pet has not feed in too long and is dead
+        Pet storage pet = PetIdToPetDetails[_petId]; // Get the pet to change details
+        pet.lastMeal = block.timestamp; // Set the last meal to now
     }
 
     function getTokenDetails(uint256 _tokenId) public view returns (Pet memory) {
-        return PetIdToPetDetails[_tokenId];
+        return PetIdToPetDetails[_tokenId]; // Getter function to retrieve a pets details
     }
 
     function getAllOwnersPets(address _owner) public view returns (Pet[] memory) {
-        return OwnerToAllPets[_owner];
+        return OwnerToAllPets[_owner]; // Getter function to retrieve all of an owners pets
     }
 
-
-
-    // OVERRIDE THE TRANSFER (public) FUNCTION TO CALL THE CHANGE MAPPINGS FUNCTION (internal) WHICH UPDATES THE MAPPINGS
-    // function _beforeTokenTransfer(address from, address to, uint256 _petId) internal override {
-    //     require(OwnerToPetId[msg.sender] == _petId, "You are not the owner of this pet.");
-    //     require(PetIdToPetDetails[_petId].lastMeal + PetIdToPetDetails[_petId].health > block.timestamp);
-        
-    //     // Move to new owner
-    //     OwnerToAllPets[to].push(PetIdToPetDetails[_petId]);
-    //     OwnerToPetId[to] = petIdCounter;
-
-    //     // Delete from old owner
-    //     delete OwnerToAllPets[from]._petId; // Not sure why its underlined
-    //     delete OwnerToPetId[from]._petId;
-
-    //     _transfer(from, to, _petId);
-    // }
 }
